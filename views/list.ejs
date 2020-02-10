@@ -1,3 +1,4 @@
+<!-- grabs header from header.ejs-->
 <%- include("header") -%>
 
 <div class="box" id="heading">
@@ -5,6 +6,7 @@
 </div>
 
 <div class="box">
+<!-- create new checkbox input for every new item created on the to do list -->
     <% for (var i=0; i<newListItems.length; i++) { %>
     <div class="item">
         <input type="checkbox">
@@ -12,10 +14,12 @@
     </div>
     <% } %>
 
+<!-- create form to get user input for their "to do list" -->
     <form class ="item" action="/" method="post">
         <input type="text" name="newItem" placeholder="New Item" autocomplete="off">
         <button type="submit" name="list" value=<%= listTitle %>>+</button>
     </form>
 </div>
 
+<!-- grabs footer from footer.ejs-->
 <%- include("footer") -%>
