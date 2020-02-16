@@ -10,7 +10,7 @@ const app = express();
 // const workItems = [];
 
 // connect to mongoDB
-mongoose.connect("mongodb://localhost:27017/todolistDB", {useNewUrlParser: true, useUnifiedTopology: true});
+mongoose.connect("mongodb+srv://admin-bernie:Q123456t@cluster0-8tphl.mongodb.net/todolistDB", {useNewUrlParser: true, useUnifiedTopology: true});
 
 // create mongoose schema
 const itemsSchema = {
