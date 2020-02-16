@@ -6,13 +6,17 @@
 </div>
 
 <div class="box">
-<!-- create new checkbox input for every new item created on the to do list -->
-    <% for (var i=0; i<newListItems.length; i++) { %>
-    <div class="item">
-        <input type="checkbox">
-        <p><%= newListItems[i] %></p>
-    </div>
-    <% } %>
+
+<!-- create checkbox for each new item. also uses the checkbox to submit a delete request to delete the post -->
+   <% newListItems.forEach(function(item){ %>
+    <form action="/delete" method="post">
+        <div class="item">
+            <input type="checkbox" name="checkbox" value="<%=item._id%>" onChange="this.form.submit()">
+            <p><%=item.name%></p>
+        </div>
+        <input type="hidden" name="listName" value="<%= listTitle %>">
+    </form>
+    <% }) %>
 
 <!-- create form to get user input for their "to do list" -->
     <form class ="item" action="/" method="post">

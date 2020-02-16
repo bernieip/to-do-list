@@ -1,13 +1,50 @@
 // require, express, bodyParser, and date.js
 const express = require("express");
 const bodyParser = require("body-parser");
-const date = require(__dirname + "/date.js");
+const mongoose = require("mongoose");
 
 const app = express();
 
 // create empty array items to be added to the "to do list"
-const items = [];
-const workItems = [];
+// const items = [];
+// const workItems = [];
+
+// connect to mongoDB
+mongoose.connect("mongodb://localhost:27017/todolistDB", {useNewUrlParser: true, useUnifiedTopology: true});
+
+// create mongoose schema
+const itemsSchema = {
+    name: String
+};
+
+// create db + specific scheme
+const Item = mongoose.model("Item", itemsSchema);
+
+// create 3 default items for DB
+const item1 = new Item({
+    name: "Welcome to your todolist!"
+});
+
+const item2 = new Item({
+    name: "Hit the + button to add a new item."
+});
+
+const item3 = new Item({
+    name: "Hit the delete button to delete an item."
+});
+
+// insert 3 default items into an array
+const defaultItems = [item1, item2, item3];
+
+
+// create mongoose scheme
+const listSchema = {
+    name: String,
+    items: [itemsSchema]
+};
+
+// create db + specific scheme
+const List = mongoose.model("List", listSchema);
 
 // use ejs for templating
 app.set("view engine", "ejs");
@@ -21,39 +58,90 @@ app.use(express.static("public"));
 // create home route
 app.get("/", function(req, res){
 
-// function to get the current date
-    const day = date.getDate();
+// find items in our mongodb
+    Item.find({}, function(err, foundItems) {
 
-// posts the items to the "to do list" based on the input from the html form to the html
-    res.render("list", {listTitle: day, newListItems: items});
+// check if database is empty, if so then insert and create the default DB, otherwise render the new item list
+        if (foundItems.length === 0) {
+// insert array into mongo db collection and show a error/success
+            Item.insertMany(defaultItems, function(err) {
+                if (err) {
+                    console.log(err);
+                } else {
+                    console.log("Successfully saved default items to database!");
+                }
+            });
+            res.redirect("/");
+        } else {
+            res.render("list", {listTitle: "Today", newListItems: foundItems});
+        }
+    });
 });
 
-// forwards the data entered in the form "newItem" back to the server
-app.post("/", function (req, res) {
-    const item = req.body.newItem;
+app.get("/:customListName", function (req, res){
+    const customListName = req.params.customListName;
 
-// checks if the button was pressed on the home page or the work page, and forwards the item to the appropriate page
-    if (req.body.list === "Work") {
-        workItems.push(item);
-        res.redirect("/work");
-    } else {
-        items.push(item);
+// find if current custom list exists
+    List.findOne({name: customListName}, function(err, foundList){
+        if (!err) {
+            if (!foundList) {
+// create a new list
+                const list = new List({
+                    name: customListName,
+                    items: defaultItems
+            });
+
+                list.save();
+                res.redirect("/" + customListName);
+            } else {
+// show existing list
+                res.render("list", {listTitle: foundList.name, newListItems: foundList.items})
+            }
+        }
+    });
+});
+
+// forwards the data entered in the form "newItem" back to the database
+app.post("/", function (req, res) {
+    const itemName = req.body.newItem;
+    const listName = req.body.list;
+
+    const item = new Item({
+        name: itemName
+    });
+
+    if (listName === "Today") {
+        item.save();
         res.redirect("/");
+    } else {
+        List.findOne({name: listName}, function (err, foundList){
+            foundList.items.push(item);
+            foundList.save();
+            res.redirect("/" + listName);
+        })
     }
 });
 
-// create work route
-app.get("/work", function(req, res) {
+// grabs checked item from the list.
+app.post("/delete", function(req, res) {
+    const checkedItemId = req.body.checkbox;
+    const listName = req.body.listName;
 
-// posts the items to the "to do list" based on the input from the html form to the html
-    res.render("list", {listTitle: "Work List", newListItems: workItems});
-});
-
-// forwards the data entered in the form "newItem" back to the server
-app.post("/work", function (req,res){
-    const item = req.body.newItem;
-    workItems.push(item);
-    res.redirect("/work");
+// check if i'm on the route "today" if so delete items, otherwise delete items from the custom route
+    if (listName === "Today") {
+        Item.findByIdAndRemove(checkedItemId, function(err) {
+            if (!err) {
+                console.log("Successfully deleted checked item.")
+                res.redirect("/");
+            }
+            });
+        } else {
+        List.findOneAndUpdate({name: listName}, {$pull: {items: {_id: checkedItemId}}}, function(err, foundList){
+            if (!err){
+                res.redirect("/" + listName);
+            }
+        })
+    }
 });
 
 // create server on port 3000
